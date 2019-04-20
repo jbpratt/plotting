@@ -72,6 +72,18 @@ func plotData(path string, d plotter.XYs) error {
 	s.Color = color.RGBA{R: 255, A: 255}
 	p.Add(s)
 
+	var x, c float64
+	x, c = 1, 1
+	// fake linear regression resutl
+	l, err := plotter.NewLine(plotter.XYs{
+		{0, c}, {20, 20*x + c},
+	})
+	if err != nil {
+		return fmt.Errorf("Coult not create line: %v", err)
+	}
+
+	p.Add(l)
+
 	w, err := p.WriterTo(256, 256, "png")
 	if err != nil {
 		return fmt.Errorf("Could not create writer: %v", err)
