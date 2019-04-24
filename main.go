@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image/color"
 	"log"
+	"math"
 	"os"
 
 	"gonum.org/v1/plot"
@@ -100,6 +101,32 @@ func plotData(path string, d plotter.XYs) error {
 	return nil
 }
 
-func linearRegression(d plotter.XYs) {
+func linearRegression(d plotter.XYs) (m, c float64) {
+	const (
+		min   = -100.0
+		max   = 100.0
+		delta = 0.1
+	)
+	minCost := math.MaxFloat64
+	for im := min; im < max; im += delta {
+		for ic := min; ic < max; ic += delta {
+			cost := computeCost(d, im, ic)
+			if cost < minCost {
+				minCost = cost
+				m, c = im, ic
+			}
+		}
+	}
 
+	return m, c
+}
+
+func computeCost(xys plotter.XYs, m, c float64) float64 {
+	// 1/N * sum((y - (m*x+c))^2)
+	s := 0.0
+	for _, xy := range xys {
+		d := xy.Y - (xy.X*m + c)
+		s += d * d
+	}
+	return s / float64(len(xys))
 }
