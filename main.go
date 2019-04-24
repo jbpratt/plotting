@@ -2,10 +2,10 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"image/color"
 	"log"
-	"math"
 	"os"
 
 	"gonum.org/v1/plot"
@@ -13,7 +13,12 @@ import (
 	"gonum.org/v1/plot/vg/draw"
 )
 
+var iterations int
+
 func main() {
+	flag.IntVar(&iterations, "n", 1000, "number of iterations")
+	flag.Parse()
+
 	data, err := read("data.txt")
 	if err != nil {
 		log.Fatalf("Could not read file: %v", err)
@@ -74,7 +79,7 @@ func plotData(path string, d plotter.XYs) error {
 	s.Color = color.RGBA{R: 255, A: 255}
 	p.Add(s)
 
-	x, c := linearRegression(d)
+	x, c := linearRegression(d, 0.01)
 	// fake linear regression resutl
 	l, err := plotter.NewLine(plotter.XYs{
 		{0, c}, {20, 20*x + c},
@@ -101,21 +106,12 @@ func plotData(path string, d plotter.XYs) error {
 	return nil
 }
 
-func linearRegression(d plotter.XYs) (m, c float64) {
-	const (
-		min   = -100.0
-		max   = 100.0
-		delta = 0.1
-	)
-	minCost := math.MaxFloat64
-	for im := min; im < max; im += delta {
-		for ic := min; ic < max; ic += delta {
-			cost := computeCost(d, im, ic)
-			if cost < minCost {
-				minCost = cost
-				m, c = im, ic
-			}
-		}
+func linearRegression(d plotter.XYs, alpha float64) (m, c float64) {
+	for i := 0; i < iterations; i++ {
+		dm, dc := computeGradient(d, m, c)
+		m += -dm * alpha
+		c += -dc * alpha
+		fmt.Printf("cost(%.2f, %.2f) = %.2f\n", m, c, computeCost(d, m, c))
 	}
 
 	return m, c
@@ -129,4 +125,17 @@ func computeCost(xys plotter.XYs, m, c float64) float64 {
 		s += d * d
 	}
 	return s / float64(len(xys))
+}
+
+func computeGradient(xys plotter.XYs, m, c float64) (dm, dc float64) {
+	// cost = 1/N * sum((y - (m*x+c))^2)
+	// cost/dm = 2/N * sum(-x * (y- (m*x+c))
+	// cost/dc = 2/N * sum(-(y - (m*x+c))
+	for _, xy := range xys {
+		d := xy.Y - (xy.X*m + c)
+		dm += -xy.X * d
+		dc += -d
+	}
+	n := float64(len(xys))
+	return 2 / n * dm, 2 / n * dc
 }
