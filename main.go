@@ -43,6 +43,7 @@ func read(filename string) (plotter.XYs, error) {
 		_, err := fmt.Sscanf(s.Text(), "%f,%f", &x, &y)
 		if err != nil {
 			log.Printf("Discarding data point: %q: %v", s.Text(), err)
+			continue
 		}
 		data = append(data, struct{ X, Y float64 }{x, y})
 	}
@@ -72,8 +73,7 @@ func plotData(path string, d plotter.XYs) error {
 	s.Color = color.RGBA{R: 255, A: 255}
 	p.Add(s)
 
-	var x, c float64
-	x, c = 1, 1
+	x, c := linearRegression(d)
 	// fake linear regression resutl
 	l, err := plotter.NewLine(plotter.XYs{
 		{0, c}, {20, 20*x + c},
@@ -98,4 +98,8 @@ func plotData(path string, d plotter.XYs) error {
 		return fmt.Errorf("Could not close %s: %v", path, err)
 	}
 	return nil
+}
+
+func linearRegression(d plotter.XYs) {
+
 }
